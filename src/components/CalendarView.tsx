@@ -1,4 +1,4 @@
-import { Task, Exam } from "@/lib/store";
+import { Task, Exam, calcDaysLeft } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -20,25 +20,20 @@ const CalendarView = ({ tasks, exams }: CalendarViewProps) => {
   const [month, setMonth] = useState(today.getMonth());
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
-  const offset = firstDay === 0 ? 6 : firstDay - 1; // Mon-start
+  const firstDay = new Date(year, month, 1).getDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
 
   const monthName = new Date(year, month).toLocaleString("default", { month: "long", year: "numeric" });
 
-  // Build events map: date string -> items
   const eventsMap = useMemo(() => {
     const map: Record<string, { label: string; type: "exam" | "assignment"; urgent: boolean }[]> = {};
 
-    // Tasks: calculate deadline date from createdAt + daysLeft
     tasks.forEach((t) => {
-      const created = new Date(t.createdAt);
-      const deadline = new Date(created.getTime() + t.daysLeft * 24 * 60 * 60 * 1000);
-      const key = deadline.toISOString().split("T")[0];
+      const key = t.deadline;
       if (!map[key]) map[key] = [];
-      map[key].push({ label: t.subject, type: "assignment", urgent: t.daysLeft <= 2 });
+      map[key].push({ label: t.subject, type: "assignment", urgent: calcDaysLeft(t.deadline) <= 2 });
     });
 
-    // Exams
     exams.forEach((ex) => {
       const key = ex.examDate;
       if (!map[key]) map[key] = [];
@@ -75,7 +70,6 @@ const CalendarView = ({ tasks, exams }: CalendarViewProps) => {
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex gap-4 text-xs">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" /> Exam</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-priority-low inline-block" /> Assignment</span>

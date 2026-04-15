@@ -1,9 +1,10 @@
-import { Task, Subtask, toggleSubtask, recalcProgress, getSubtasks } from "@/lib/store";
+import { Task, Subtask, toggleSubtask, recalcProgress, getSubtasks, addSubtask, updateSubtaskName, deleteSubtask, calcDaysLeft } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, Pencil, Trash2, AlertTriangle, Clock, Monitor, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Pencil, Trash2, AlertTriangle, Clock, Monitor, FileText, Plus, X } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface TaskCardProps {
@@ -23,8 +24,13 @@ const priorityStyles = {
 
 const TaskCard = ({ task, userId, onEdit, onDelete, onToggleComplete, onSubtaskChange }: TaskCardProps) => {
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
-  const isUrgent = task.daysLeft <= 2 && task.status === "pending";
-  const isDueToday = task.daysLeft === 0 && task.status === "pending";
+  const [newSubName, setNewSubName] = useState("");
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
+  const [editingSubName, setEditingSubName] = useState("");
+
+  const daysLeft = calcDaysLeft(task.deadline);
+  const isUrgent = daysLeft <= 2 && task.status === "pending";
+  const isDueToday = daysLeft === 0 && task.status === "pending";
 
   useEffect(() => {
     setSubtasks(getSubtasks(task.id));
@@ -35,6 +41,31 @@ const TaskCard = ({ task, userId, onEdit, onDelete, onToggleComplete, onSubtaskC
     setSubtasks(updated);
     recalcProgress(userId, task.id);
     onSubtaskChange();
+  };
+
+  const handleAddSub = () => {
+    if (!newSubName.trim()) return;
+    addSubtask(task.id, newSubName.trim());
+    setSubtasks(getSubtasks(task.id));
+    setNewSubName("");
+    recalcProgress(userId, task.id);
+    onSubtaskChange();
+  };
+
+  const handleDeleteSub = (subId: string) => {
+    deleteSubtask(task.id, subId);
+    setSubtasks(getSubtasks(task.id));
+    recalcProgress(userId, task.id);
+    onSubtaskChange();
+  };
+
+  const handleSaveSubEdit = (subId: string) => {
+    if (editingSubName.trim()) {
+      updateSubtaskName(task.id, subId, editingSubName.trim());
+      setSubtasks(getSubtasks(task.id));
+    }
+    setEditingSubId(null);
+    setEditingSubName("");
   };
 
   return (
@@ -73,13 +104,16 @@ const TaskCard = ({ task, userId, onEdit, onDelete, onToggleComplete, onSubtaskC
       <h3 className={`font-semibold text-card-foreground mb-1 ${task.status === "completed" ? "line-through" : ""}`}>
         {task.title}
       </h3>
-      <p className="text-sm text-muted-foreground mb-2">{task.subject}</p>
+      <p className="text-sm text-muted-foreground mb-1">{task.subject}</p>
+      <p className="text-xs text-muted-foreground mb-2">
+        Deadline: {new Date(task.deadline).toLocaleDateString()}
+      </p>
 
       {/* Days left */}
       <p className={`text-sm font-medium mb-3 ${
-        task.daysLeft <= 2 ? "text-priority-high" : task.daysLeft <= 5 ? "text-priority-medium" : "text-muted-foreground"
+        daysLeft <= 2 ? "text-priority-high" : daysLeft <= 5 ? "text-priority-medium" : "text-muted-foreground"
       }`}>
-        {task.daysLeft === 0 ? "Due today!" : `${task.daysLeft} day${task.daysLeft !== 1 ? "s" : ""} left`}
+        {daysLeft === 0 ? "Due today!" : daysLeft < 0 ? "Overdue!" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`}
       </p>
 
       {/* Progress bar */}
@@ -91,25 +125,58 @@ const TaskCard = ({ task, userId, onEdit, onDelete, onToggleComplete, onSubtaskC
         <Progress value={task.progress} className="h-2" />
       </div>
 
-      {/* Subtasks checklist */}
+      {/* Subtasks checklist with edit/delete */}
       {subtasks.length > 0 && (
-        <div className="space-y-1.5 mb-3 max-h-32 overflow-y-auto">
+        <div className="space-y-1.5 mb-3 max-h-40 overflow-y-auto">
           {subtasks.map((sub) => (
-            <label
-              key={sub.id}
-              className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5 transition-colors"
-            >
+            <div key={sub.id} className="flex items-center gap-2 text-sm hover:bg-muted/50 rounded px-1 py-0.5 transition-colors group/sub">
               <Checkbox
                 checked={sub.completed}
                 onCheckedChange={() => handleToggleSub(sub.id)}
               />
-              <span className={sub.completed ? "line-through text-muted-foreground" : "text-card-foreground"}>
-                {sub.name}
-              </span>
-            </label>
+              {editingSubId === sub.id ? (
+                <Input
+                  value={editingSubName}
+                  onChange={(e) => setEditingSubName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveSubEdit(sub.id); if (e.key === "Escape") setEditingSubId(null); }}
+                  onBlur={() => handleSaveSubEdit(sub.id)}
+                  className="h-6 text-xs px-1"
+                  autoFocus
+                />
+              ) : (
+                <span className={`flex-1 ${sub.completed ? "line-through text-muted-foreground" : "text-card-foreground"}`}>
+                  {sub.name}
+                </span>
+              )}
+              <div className="flex gap-1 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+                <button
+                  onClick={() => { setEditingSubId(sub.id); setEditingSubName(sub.name); }}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <button onClick={() => handleDeleteSub(sub.id)} className="text-muted-foreground hover:text-destructive">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
+
+      {/* Add subtask inline */}
+      <div className="flex gap-1 mb-3">
+        <Input
+          placeholder="+ Add subtask"
+          value={newSubName}
+          onChange={(e) => setNewSubName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddSub(); } }}
+          className="h-7 text-xs"
+        />
+        <Button type="button" size="sm" variant="ghost" onClick={handleAddSub} className="h-7 px-2">
+          <Plus className="w-3.5 h-3.5" />
+        </Button>
+      </div>
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-3 border-t border-border">

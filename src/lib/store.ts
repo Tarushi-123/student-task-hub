@@ -18,7 +18,7 @@ export interface Task {
   id: string;
   title: string;
   subject: string;
-  daysLeft: number;
+  deadline: string; // ISO date string (YYYY-MM-DD)
   priority: "High" | "Medium" | "Low";
   status: "pending" | "completed";
   type: "Online" | "Offline";
@@ -30,7 +30,7 @@ export interface Task {
 export interface Exam {
   id: string;
   subject: string;
-  examDate: string; // ISO date string
+  examDate: string;
   userId: string;
 }
 
@@ -42,7 +42,13 @@ export interface TimetableEntry {
   userId: string;
 }
 
-// Priority auto-assignment based on days left
+/** Calculate days left from a deadline date string */
+export function calcDaysLeft(deadline: string): number {
+  const diff = new Date(deadline).getTime() - new Date().setHours(0, 0, 0, 0);
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+/** Priority auto-assignment based on days left */
 export function getPriority(days: number): "High" | "Medium" | "Low" {
   if (days <= 2) return "High";
   if (days <= 5) return "Medium";
@@ -105,17 +111,18 @@ export function addTask(
   userId: string,
   title: string,
   subject: string,
-  daysLeft: number,
+  deadline: string,
   type: "Online" | "Offline",
   subtaskNames: string[]
 ): Task {
   const tasks = getTasks(userId);
   const taskId = crypto.randomUUID();
+  const daysLeft = calcDaysLeft(deadline);
   const task: Task = {
     id: taskId,
     title,
     subject,
-    daysLeft,
+    deadline,
     priority: getPriority(daysLeft),
     status: "pending",
     type,
@@ -126,24 +133,30 @@ export function addTask(
   tasks.push(task);
   saveTasks(userId, tasks);
 
-  // Create subtasks
   if (subtaskNames.length > 0) {
-    const subtasks = getSubtasks(taskId);
-    subtaskNames.forEach((name) => {
-      subtasks.push({ id: crypto.randomUUID(), taskId, name, completed: false });
-    });
+    const subtasks: Subtask[] = subtaskNames.map((name) => ({
+      id: crypto.randomUUID(),
+      taskId,
+      name,
+      completed: false,
+    }));
     saveSubtasks(taskId, subtasks);
   }
 
   return task;
 }
 
-export function updateTask(userId: string, taskId: string, updates: Partial<Pick<Task, "title" | "subject" | "daysLeft" | "status" | "type" | "progress">>) {
+export function updateTask(
+  userId: string,
+  taskId: string,
+  updates: Partial<Pick<Task, "title" | "subject" | "deadline" | "status" | "type" | "progress">>
+) {
   const tasks = getTasks(userId);
   const idx = tasks.findIndex((t) => t.id === taskId);
   if (idx === -1) return null;
-  if (updates.daysLeft !== undefined) {
-    (updates as any).priority = getPriority(updates.daysLeft);
+  if (updates.deadline !== undefined) {
+    const daysLeft = calcDaysLeft(updates.deadline);
+    (updates as any).priority = getPriority(daysLeft);
   }
   tasks[idx] = { ...tasks[idx], ...updates };
   saveTasks(userId, tasks);
@@ -153,7 +166,6 @@ export function updateTask(userId: string, taskId: string, updates: Partial<Pick
 export function deleteTask(userId: string, taskId: string) {
   const tasks = getTasks(userId).filter((t) => t.id !== taskId);
   saveTasks(userId, tasks);
-  // Also remove subtasks
   localStorage.removeItem(`studypro_subtasks_${taskId}`);
 }
 
@@ -174,6 +186,14 @@ export function addSubtask(taskId: string, name: string): Subtask {
   return sub;
 }
 
+export function updateSubtaskName(taskId: string, subtaskId: string, name: string) {
+  const subtasks = getSubtasks(taskId);
+  const idx = subtasks.findIndex((s) => s.id === subtaskId);
+  if (idx !== -1) subtasks[idx].name = name;
+  saveSubtasks(taskId, subtasks);
+  return subtasks;
+}
+
 export function toggleSubtask(taskId: string, subtaskId: string): Subtask[] {
   const subtasks = getSubtasks(taskId);
   const idx = subtasks.findIndex((s) => s.id === subtaskId);
@@ -185,6 +205,7 @@ export function toggleSubtask(taskId: string, subtaskId: string): Subtask[] {
 export function deleteSubtask(taskId: string, subtaskId: string) {
   const subtasks = getSubtasks(taskId).filter((s) => s.id !== subtaskId);
   saveSubtasks(taskId, subtasks);
+  return subtasks;
 }
 
 /** Recalculate task progress based on subtasks, auto-complete if 100% */
