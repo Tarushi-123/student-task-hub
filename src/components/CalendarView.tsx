@@ -83,7 +83,7 @@ const CalendarView = ({ tasks, exams }: CalendarViewProps) => {
         {cells.map((day, i) => {
           if (day === null) return <div key={i} className="bg-card min-h-[70px]" />;
           const date = new Date(year, month, day);
-          const key = date.toISOString().split("T")[0];
+          const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const events = eventsMap[key] || [];
           const isToday = isSameDay(date, today);
 
