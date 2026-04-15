@@ -1,4 +1,4 @@
-import { Task, Exam, calcDaysLeft } from "@/lib/store";
+import { Task, Exam, calcDaysLeft, parseLocalDate } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -37,7 +37,7 @@ const CalendarView = ({ tasks, exams }: CalendarViewProps) => {
     exams.forEach((ex) => {
       const key = ex.examDate;
       if (!map[key]) map[key] = [];
-      const days = Math.ceil((new Date(ex.examDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const days = calcDaysLeft(ex.examDate);
       map[key].push({ label: ex.subject, type: "exam", urgent: days <= 3 && days >= 0 });
     });
 

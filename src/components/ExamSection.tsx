@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Exam, addExam, deleteExam } from "@/lib/store";
+import { Exam, addExam, deleteExam, calcDaysLeft, parseLocalDate, daysLeftLabel } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,7 @@ interface ExamSectionProps {
 }
 
 function daysUntil(dateStr: string) {
-  const diff = new Date(dateStr).getTime() - new Date().setHours(0, 0, 0, 0);
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return calcDaysLeft(dateStr);
 }
 
 const ExamSection = ({ exams, userId, onRefresh }: ExamSectionProps) => {
@@ -23,7 +22,7 @@ const ExamSection = ({ exams, userId, onRefresh }: ExamSectionProps) => {
   const [subject, setSubject] = useState("");
   const [examDate, setExamDate] = useState("");
 
-  const sorted = [...exams].sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime());
+  const sorted = [...exams].sort((a, b) => parseLocalDate(a.examDate).getTime() - parseLocalDate(b.examDate).getTime());
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +68,7 @@ const ExamSection = ({ exams, userId, onRefresh }: ExamSectionProps) => {
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="font-semibold text-card-foreground">{exam.subject}</h4>
-                    <p className="text-sm text-muted-foreground">{new Date(exam.examDate).toLocaleDateString()}</p>
+                    <p className="text-sm text-muted-foreground">{parseLocalDate(exam.examDate).toLocaleDateString()}</p>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => handleDelete(exam.id)} className="text-muted-foreground hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
