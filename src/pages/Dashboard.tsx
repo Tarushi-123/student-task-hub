@@ -57,7 +57,7 @@ const Dashboard = () => {
     if (!user) return;
     const urgentTasks = tasks.filter((t) => calcDaysLeft(t.deadline) <= 2 && t.status === "pending");
     const urgentExams = exams.filter((e) => {
-      const days = Math.ceil((new Date(e.examDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const days = calcDaysLeft(e.examDate);
       return days <= 3 && days >= 0;
     });
     const total = urgentTasks.length + urgentExams.length;

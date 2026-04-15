@@ -1,4 +1,4 @@
-import { Task, Subtask, toggleSubtask, recalcProgress, getSubtasks, addSubtask, updateSubtaskName, deleteSubtask, calcDaysLeft } from "@/lib/store";
+import { Task, Subtask, toggleSubtask, recalcProgress, getSubtasks, addSubtask, updateSubtaskName, deleteSubtask, calcDaysLeft, daysLeftLabel, parseLocalDate } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -106,14 +106,14 @@ const TaskCard = ({ task, userId, onEdit, onDelete, onToggleComplete, onSubtaskC
       </h3>
       <p className="text-sm text-muted-foreground mb-1">{task.subject}</p>
       <p className="text-xs text-muted-foreground mb-2">
-        Deadline: {new Date(task.deadline).toLocaleDateString()}
+        Deadline: {parseLocalDate(task.deadline).toLocaleDateString()}
       </p>
 
       {/* Days left */}
       <p className={`text-sm font-medium mb-3 ${
-        daysLeft <= 2 ? "text-priority-high" : daysLeft <= 5 ? "text-priority-medium" : "text-muted-foreground"
+        daysLeft < 0 ? "text-priority-high" : daysLeft <= 2 ? "text-priority-high" : daysLeft <= 5 ? "text-priority-medium" : "text-muted-foreground"
       }`}>
-        {daysLeft === 0 ? "Due today!" : daysLeft < 0 ? "Overdue!" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`}
+        {daysLeftLabel(task.deadline)}
       </p>
 
       {/* Progress bar */}

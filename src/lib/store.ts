@@ -42,10 +42,28 @@ export interface TimetableEntry {
   userId: string;
 }
 
+/** Parse a YYYY-MM-DD string as a local-midnight date (avoids UTC timezone shift) */
+export function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Calculate days left from a deadline date string */
 export function calcDaysLeft(deadline: string): number {
-  const diff = new Date(deadline).getTime() - new Date().setHours(0, 0, 0, 0);
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const deadlineDate = parseLocalDate(deadline);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadlineDate.setHours(0, 0, 0, 0);
+  return Math.round((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** Get a human-readable label for days left */
+export function daysLeftLabel(deadline: string): string {
+  const days = calcDaysLeft(deadline);
+  if (days < 0) return "Overdue";
+  if (days === 0) return "Due Today";
+  if (days === 1) return "1 day left";
+  return `${days} days left`;
 }
 
 /** Priority auto-assignment based on days left */
