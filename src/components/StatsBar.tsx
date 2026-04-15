@@ -27,7 +27,7 @@ const StatsBar = ({ tasks }: { tasks: Task[] }) => {
       </div>
       <div className="bg-card rounded-xl p-4 shadow-card border border-border">
         <div className="flex justify-between text-sm mb-2">
-          <span className="text-muted-foreground">Completion</span>
+          <span className="text-muted-foreground">Overall Progress</span>
           <span className="font-semibold text-card-foreground">{progress}%</span>
         </div>
         <Progress value={progress} className="h-2.5" />
