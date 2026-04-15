@@ -30,7 +30,12 @@ const TaskDialog = ({ open, onClose, onSave, task }: TaskDialogProps) => {
     if (task) {
       setTitle(task.title);
       setSubject(task.subject);
-      setDeadline(task.deadline ? new Date(task.deadline) : undefined);
+      if (task.deadline) {
+        const [y, m, d] = task.deadline.split("-").map(Number);
+        setDeadline(new Date(y, m - 1, d));
+      } else {
+        setDeadline(undefined);
+      }
       setType(task.type);
       setSubtaskNames([]);
     } else {
