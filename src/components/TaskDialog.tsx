@@ -4,20 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Task } from "@/lib/store";
-import { Plus, X } from "lucide-react";
+import { Plus, X, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface TaskDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: { title: string; subject: string; daysLeft: number; type: "Online" | "Offline"; subtaskNames: string[] }) => void;
+  onSave: (data: { title: string; subject: string; deadline: string; type: "Online" | "Offline"; subtaskNames: string[] }) => void;
   task?: Task | null;
 }
 
 const TaskDialog = ({ open, onClose, onSave, task }: TaskDialogProps) => {
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
-  const [daysLeft, setDaysLeft] = useState(7);
+  const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [type, setType] = useState<"Online" | "Offline">("Online");
   const [subtaskNames, setSubtaskNames] = useState<string[]>([]);
   const [newSub, setNewSub] = useState("");
@@ -26,13 +30,13 @@ const TaskDialog = ({ open, onClose, onSave, task }: TaskDialogProps) => {
     if (task) {
       setTitle(task.title);
       setSubject(task.subject);
-      setDaysLeft(task.daysLeft);
+      setDeadline(task.deadline ? new Date(task.deadline) : undefined);
       setType(task.type);
       setSubtaskNames([]);
     } else {
       setTitle("");
       setSubject("");
-      setDaysLeft(7);
+      setDeadline(undefined);
       setType("Online");
       setSubtaskNames([]);
     }
@@ -52,8 +56,9 @@ const TaskDialog = ({ open, onClose, onSave, task }: TaskDialogProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !subject.trim()) return;
-    onSave({ title: title.trim(), subject: subject.trim(), daysLeft, type, subtaskNames });
+    if (!title.trim() || !subject.trim() || !deadline) return;
+    const deadlineStr = format(deadline, "yyyy-MM-dd");
+    onSave({ title: title.trim(), subject: subject.trim(), deadline: deadlineStr, type, subtaskNames });
     onClose();
   };
 
@@ -74,8 +79,27 @@ const TaskDialog = ({ open, onClose, onSave, task }: TaskDialogProps) => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="days">Days Left</Label>
-              <Input id="days" type="number" min={0} value={daysLeft} onChange={(e) => setDaysLeft(Number(e.target.value))} />
+              <Label>Deadline</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !deadline && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={setDeadline}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Type</Label>

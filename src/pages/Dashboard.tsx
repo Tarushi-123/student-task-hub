@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   getSession, clearSession, getTasks, addTask, updateTask, deleteTask,
-  getExams, getTimetable, Task, Exam, TimetableEntry,
+  getExams, getTimetable, Task, Exam, TimetableEntry, calcDaysLeft,
 } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import TaskCard from "@/components/TaskCard";
@@ -48,14 +48,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadAll();
-    const interval = setInterval(loadAll, 60000); // 60s auto-refresh
+    const interval = setInterval(loadAll, 60000);
     return () => clearInterval(interval);
   }, [loadAll]);
 
   // Urgent alerts on mount
   useEffect(() => {
     if (!user) return;
-    const urgentTasks = tasks.filter((t) => t.daysLeft <= 2 && t.status === "pending");
+    const urgentTasks = tasks.filter((t) => calcDaysLeft(t.deadline) <= 2 && t.status === "pending");
     const urgentExams = exams.filter((e) => {
       const days = Math.ceil((new Date(e.examDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       return days <= 3 && days >= 0;
@@ -88,7 +88,7 @@ const Dashboard = () => {
       const q = search.toLowerCase();
       result = result.filter((t) => t.title.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q));
     }
-    if (sort === "deadline") result.sort((a, b) => a.daysLeft - b.daysLeft);
+    if (sort === "deadline") result.sort((a, b) => calcDaysLeft(a.deadline) - calcDaysLeft(b.deadline));
     if (sort === "priority") {
       const order = { High: 0, Medium: 1, Low: 2 };
       result.sort((a, b) => order[a.priority] - order[b.priority]);
@@ -98,15 +98,15 @@ const Dashboard = () => {
 
   if (!user) return null;
 
-  const handleAdd = (data: { title: string; subject: string; daysLeft: number; type: "Online" | "Offline"; subtaskNames: string[] }) => {
-    addTask(user.id, data.title, data.subject, data.daysLeft, data.type, data.subtaskNames);
+  const handleAdd = (data: { title: string; subject: string; deadline: string; type: "Online" | "Offline"; subtaskNames: string[] }) => {
+    addTask(user.id, data.title, data.subject, data.deadline, data.type, data.subtaskNames);
     loadAll();
     toast({ title: "Task added!" });
   };
 
-  const handleEdit = (data: { title: string; subject: string; daysLeft: number; type: "Online" | "Offline"; subtaskNames: string[] }) => {
+  const handleEdit = (data: { title: string; subject: string; deadline: string; type: "Online" | "Offline"; subtaskNames: string[] }) => {
     if (editingTask) {
-      updateTask(user.id, editingTask.id, { title: data.title, subject: data.subject, daysLeft: data.daysLeft, type: data.type });
+      updateTask(user.id, editingTask.id, { title: data.title, subject: data.subject, deadline: data.deadline, type: data.type });
       loadAll();
       toast({ title: "Task updated!" });
     }
@@ -134,7 +134,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Nav */}
       <nav className="gradient-primary sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -156,7 +155,6 @@ const Dashboard = () => {
       </nav>
 
       <main className="container mx-auto px-4 py-6 max-w-6xl space-y-6">
-        {/* Welcome */}
         <div className="animate-fade-in">
           <h1 className="text-2xl font-bold text-foreground">Welcome back, {user.name} 👋</h1>
           <p className="text-muted-foreground">Your academic overview</p>
@@ -164,7 +162,6 @@ const Dashboard = () => {
 
         <StatsBar tasks={tasks} />
 
-        {/* Tabs */}
         <Tabs defaultValue="tasks" className="space-y-4">
           <TabsList className="grid grid-cols-4 w-full max-w-lg">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -173,7 +170,6 @@ const Dashboard = () => {
             <TabsTrigger value="timetable">Timetable</TabsTrigger>
           </TabsList>
 
-          {/* Tasks Tab */}
           <TabsContent value="tasks" className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px]">
@@ -223,17 +219,14 @@ const Dashboard = () => {
             )}
           </TabsContent>
 
-          {/* Exams Tab */}
           <TabsContent value="exams">
             <ExamSection exams={exams} userId={user.id} onRefresh={loadAll} />
           </TabsContent>
 
-          {/* Calendar Tab */}
           <TabsContent value="calendar">
             <CalendarView tasks={tasks} exams={exams} />
           </TabsContent>
 
-          {/* Timetable Tab */}
           <TabsContent value="timetable">
             <TimetableSection entries={timetable} userId={user.id} onRefresh={loadAll} />
           </TabsContent>
