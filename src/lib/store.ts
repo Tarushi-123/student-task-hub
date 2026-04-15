@@ -43,13 +43,15 @@ export interface TimetableEntry {
 }
 
 /** Parse a YYYY-MM-DD string as a local-midnight date (avoids UTC timezone shift) */
-export function parseLocalDate(dateStr: string): Date {
+export function parseLocalDate(dateStr: string | undefined): Date {
+  if (!dateStr) return new Date(0);
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
 
 /** Calculate days left from a deadline date string */
-export function calcDaysLeft(deadline: string): number {
+export function calcDaysLeft(deadline: string | undefined): number {
+  if (!deadline) return Infinity;
   const deadlineDate = parseLocalDate(deadline);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -58,7 +60,8 @@ export function calcDaysLeft(deadline: string): number {
 }
 
 /** Get a human-readable label for days left */
-export function daysLeftLabel(deadline: string): string {
+export function daysLeftLabel(deadline: string | undefined): string {
+  if (!deadline) return "No deadline";
   const days = calcDaysLeft(deadline);
   if (days < 0) return "Overdue";
   if (days === 0) return "Due Today";
