@@ -94,6 +94,7 @@ export class Task {
   type: "Online" | "Offline";
   progress: number;
   userId: string;
+  createdAt: string;
 
   constructor(data: ITask) {
     this.id = data.id;
@@ -105,6 +106,7 @@ export class Task {
     this.type = data.type;
     this.progress = data.progress;
     this.userId = data.userId;
+    this.createdAt = data.createdAt;
   }
 
   static addTask(
