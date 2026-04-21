@@ -1,9 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  getSession, clearSession, getTasks, addTask, updateTask, deleteTask,
-  getExams, getTimetable, Task, Exam, TimetableEntry, calcDaysLeft,
-} from "@/lib/store";
+import { getSession, Task, Exam, TimetableEntry, calcDaysLeft } from "@/lib/store";
+import { AuthService, Task as TaskClass, DashboardController } from "@/lib/classes";
 import { useToast } from "@/hooks/use-toast";
 import TaskCard from "@/components/TaskCard";
 import TaskDialog from "@/components/TaskDialog";
@@ -39,11 +37,14 @@ const Dashboard = () => {
     if (!user) navigate("/login");
   }, [user, navigate]);
 
+  // Use DashboardController per class diagram (loadDashboard / refreshData)
   const loadAll = useCallback(() => {
     if (!user) return;
-    setTasks(getTasks(user.id));
-    setExams(getExams(user.id));
-    setTimetable(getTimetable(user.id));
+    const controller = new DashboardController(user.id);
+    controller.loadDashboard();
+    setTasks(controller.tasks);
+    setExams(controller.exams);
+    setTimetable(controller.timetable);
   }, [user]);
 
   useEffect(() => {
@@ -99,14 +100,18 @@ const Dashboard = () => {
   if (!user) return null;
 
   const handleAdd = (data: { title: string; subject: string; deadline: string; type: "Online" | "Offline"; subtaskNames: string[] }) => {
-    addTask(user.id, data.title, data.subject, data.deadline, data.type, data.subtaskNames);
+    // Use Task.addTask() per class diagram
+    TaskClass.addTask(user.id, data.title, data.subject, data.deadline, data.type, data.subtaskNames);
     loadAll();
     toast({ title: "Task added!" });
   };
 
   const handleEdit = (data: { title: string; subject: string; deadline: string; type: "Online" | "Offline"; subtaskNames: string[] }) => {
     if (editingTask) {
-      updateTask(user.id, editingTask.id, { title: data.title, subject: data.subject, deadline: data.deadline, type: data.type });
+      // Use Task instance .editTask() per class diagram
+      new TaskClass(editingTask).editTask({
+        title: data.title, subject: data.subject, deadline: data.deadline, type: data.type,
+      });
       loadAll();
       toast({ title: "Task updated!" });
     }
@@ -114,7 +119,9 @@ const Dashboard = () => {
   };
 
   const handleDelete = (id: string) => {
-    deleteTask(user.id, id);
+    // Use Task instance .deleteTask() per class diagram
+    const t = tasks.find((x) => x.id === id);
+    if (t) new TaskClass(t).deleteTask();
     loadAll();
     toast({ title: "Task deleted" });
   };
@@ -122,13 +129,14 @@ const Dashboard = () => {
   const handleToggleComplete = (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (task) {
-      updateTask(user.id, id, { status: task.status === "completed" ? "pending" : "completed" });
+      new TaskClass(task).editTask({ status: task.status === "completed" ? "pending" : "completed" });
       loadAll();
     }
   };
 
   const handleLogout = () => {
-    clearSession();
+    // Use AuthService.logout() per class diagram
+    AuthService.logout();
     navigate("/login");
   };
 

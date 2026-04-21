@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginUser, setSession } from "@/lib/store";
+import { AuthService } from "@/lib/classes";
 import { useToast } from "@/hooks/use-toast";
 import { BookOpen, LogIn } from "lucide-react";
 
@@ -19,12 +19,13 @@ const Login = () => {
       toast({ title: "All fields are required", variant: "destructive" });
       return;
     }
-    const result = loginUser(email, password);
-    if (typeof result === "string") {
-      toast({ title: result, variant: "destructive" });
+    // Use AuthService.validateLogin() per class diagram
+    const ok = AuthService.validateLogin(email, password);
+    if (!ok) {
+      toast({ title: "Invalid email or password", variant: "destructive" });
     } else {
-      setSession(result);
-      toast({ title: `Welcome back, ${result.name}!` });
+      const u = AuthService.currentUser!;
+      toast({ title: `Welcome back, ${u.name}!` });
       navigate("/dashboard");
     }
   };
