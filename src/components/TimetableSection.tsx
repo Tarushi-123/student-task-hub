@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { TimetableEntry, addTimetableEntry, deleteTimetableEntry } from "@/lib/store";
+import { TimetableEntry } from "@/lib/store";
+import { TimetableEntry as TimetableEntryClass } from "@/lib/classes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +35,8 @@ const TimetableSection = ({ entries, userId, onRefresh }: TimetableSectionProps)
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!timeSlot.trim() || !subject.trim()) return;
-    addTimetableEntry(userId, day, timeSlot.trim(), subject.trim());
+    // Use TimetableEntry.addEntry() per class diagram
+    TimetableEntryClass.addEntry(userId, day, timeSlot.trim(), subject.trim());
     setTimeSlot("");
     setSubject("");
     setDialogOpen(false);
@@ -42,7 +44,9 @@ const TimetableSection = ({ entries, userId, onRefresh }: TimetableSectionProps)
   };
 
   const handleDelete = (id: string) => {
-    deleteTimetableEntry(userId, id);
+    // Use TimetableEntry instance .delete() per class diagram
+    const target = entries.find((e) => e.id === id);
+    if (target) new TimetableEntryClass(target).delete();
     onRefresh();
   };
 

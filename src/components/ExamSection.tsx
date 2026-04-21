@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Exam, addExam, deleteExam, calcDaysLeft, parseLocalDate, daysLeftLabel } from "@/lib/store";
+import { Exam, calcDaysLeft, parseLocalDate } from "@/lib/store";
+import { Exam as ExamClass } from "@/lib/classes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,8 @@ const ExamSection = ({ exams, userId, onRefresh }: ExamSectionProps) => {
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !examDate) return;
-    addExam(userId, subject.trim(), examDate);
+    // Use Exam.addExam() per class diagram
+    ExamClass.addExam(userId, subject.trim(), examDate);
     setSubject("");
     setExamDate("");
     setDialogOpen(false);
@@ -35,7 +37,9 @@ const ExamSection = ({ exams, userId, onRefresh }: ExamSectionProps) => {
   };
 
   const handleDelete = (id: string) => {
-    deleteExam(userId, id);
+    // Use Exam instance .delete() per class diagram
+    const target = exams.find((e) => e.id === id);
+    if (target) new ExamClass(target).delete();
     onRefresh();
   };
 

@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { registerUser, setSession } from "@/lib/store";
+import { AuthService } from "@/lib/classes";
+import { setSession } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { BookOpen, UserPlus } from "lucide-react";
 
@@ -20,11 +21,12 @@ const Register = () => {
       toast({ title: "All fields are required", variant: "destructive" });
       return;
     }
-    const result = registerUser(name, email, password);
+    // Use AuthService.register() per class diagram
+    const result = AuthService.register(name, email, password);
     if (typeof result === "string") {
       toast({ title: result, variant: "destructive" });
     } else {
-      setSession(result);
+      setSession({ id: result.id, name: result.name, email: result.email, password: "" });
       toast({ title: "Account created!" });
       navigate("/dashboard");
     }
