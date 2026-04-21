@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <limits>
+#include <cstdint>
 
 using namespace std;
 
